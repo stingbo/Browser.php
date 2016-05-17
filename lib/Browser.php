@@ -49,6 +49,9 @@ class Browser
     private $_is_facebook = false;
     private $_aol_version = '';
 
+    // new add
+    private $_is_wechat = false;
+
     const BROWSER_UNKNOWN = 'unknown';
     const VERSION_UNKNOWN = 'unknown';
 
@@ -85,6 +88,9 @@ class Browser
     const BROWSER_MSNBOT = 'MSN Bot'; // http://search.msn.com/msnbot.htm
     const BROWSER_BINGBOT = 'Bing Bot'; // http://en.wikipedia.org/wiki/Bingbot
     const BROWSER_VIVALDI = 'Vivalidi'; // https://vivaldi.com/
+
+    // Wechat
+    const BROWSER_WECHAT = 'Wechat';
 
     const BROWSER_NETSCAPE_NAVIGATOR = 'Netscape Navigator'; // http://browser.netscape.com/ (DEPRECATED)
     const BROWSER_GALEON = 'Galeon'; // http://galeon.sourceforge.net/ (DEPRECATED)
@@ -131,6 +137,7 @@ class Browser
     public function reset()
     {
         $this->_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : "";
+
         $this->_browser_name = self::BROWSER_UNKNOWN;
         $this->_version = self::VERSION_UNKNOWN;
         $this->_platform = self::PLATFORM_UNKNOWN;
@@ -140,6 +147,7 @@ class Browser
         $this->_is_tablet = false;
         $this->_is_robot = false;
         $this->_is_facebook = false;
+        $this->_is_wechat = false;
         $this->_aol_version = self::VERSION_UNKNOWN;
     }
 
@@ -262,12 +270,21 @@ class Browser
     }
 
     /**
-    * Is the browser from facebook?
-    * @return boolean True if the browser is from facebook otherwise false
-    */
+     * Is the browser from facebook?
+     * @return boolean True if the browser is from facebook otherwise false
+     */
     public function isFacebook()
     {
         return $this->_is_facebook;
+    }
+
+    /**
+     * Is the browser from Wechat?
+     * @return boolean True if the browser is from Wechat otherwise false
+     */
+    public function isWechat()
+    {
+        return $this->_is_wechat;
     }
 
     /**
@@ -308,11 +325,20 @@ class Browser
 
     /**
      * Set the Browser to be a Facebook request
-     * @param boolean $value is the browser a robot or not
+     * @param boolean $value is the browser from facebook or not
      */
     protected function setFacebook($value = true)
     {
         $this->_is_facebook = $value;
+    }
+
+    /**
+     * Set the Browser to be a Wechat request
+     * @param boolean $value is the browser from wechat or not
+     */
+    protected function setWechat($value = true)
+    {
+        $this->_is_wechat = $value;
     }
 
     /**
@@ -352,9 +378,9 @@ class Browser
     public function __toString()
     {
         return "<strong>Browser Name:</strong> {$this->getBrowser()}<br/>\n" .
-        "<strong>Browser Version:</strong> {$this->getVersion()}<br/>\n" .
-        "<strong>Browser User Agent String:</strong> {$this->getUserAgent()}<br/>\n" .
-        "<strong>Platform:</strong> {$this->getPlatform()}<br/>";
+            "<strong>Browser Version:</strong> {$this->getVersion()}<br/>\n" .
+            "<strong>Browser User Agent String:</strong> {$this->getUserAgent()}<br/>\n" .
+            "<strong>Platform:</strong> {$this->getPlatform()}<br/>";
     }
 
     /**
@@ -388,6 +414,10 @@ class Browser
             //     before FireFox are necessary
             // (6) Vivalid is UA contains both Firefox and Chrome so Vivalid checks
             //     before Firefox and Chrome
+
+            // Wechat
+            $this->checkBrowserWechat() ||
+
             $this->checkBrowserWebTv() ||
             $this->checkBrowserEdge() ||
             $this->checkBrowserInternetExplorer() ||
@@ -589,19 +619,19 @@ class Browser
      */
     protected function checkBrowserEdge()
     {
-      if( stripos($this->_agent,'Edge/') !== false ) {
-	    	$aresult = explode('/', stristr($this->_agent, 'Edge'));
-    		if (isset($aresult[1])) {
-            $aversion = explode(' ', $aresult[1]);
-            $this->setVersion($aversion[0]);
-            $this->setBrowser(self::BROWSER_EDGE);
-            if(stripos($this->_agent, 'Windows Phone') !== false || stripos($this->_agent, 'Android') !== false) {
-                $this->setMobile(true);
+        if( stripos($this->_agent,'Edge/') !== false ) {
+            $aresult = explode('/', stristr($this->_agent, 'Edge'));
+            if (isset($aresult[1])) {
+                $aversion = explode(' ', $aresult[1]);
+                $this->setVersion($aversion[0]);
+                $this->setBrowser(self::BROWSER_EDGE);
+                if(stripos($this->_agent, 'Windows Phone') !== false || stripos($this->_agent, 'Android') !== false) {
+                    $this->setMobile(true);
+                }
+                return true;
             }
-            return true;
         }
-      }
-      return false;
+        return false;
     }
 
     /**
@@ -610,12 +640,12 @@ class Browser
      */
     protected function checkBrowserInternetExplorer()
     {
-	//  Test for IE11
-	if( stripos($this->_agent,'Trident/7.0; rv:11.0') !== false ) {
-		$this->setBrowser(self::BROWSER_IE);
-		$this->setVersion('11.0');
-		return true;
-	}
+        //  Test for IE11
+        if( stripos($this->_agent,'Trident/7.0; rv:11.0') !== false ) {
+            $this->setBrowser(self::BROWSER_IE);
+            $this->setVersion('11.0');
+            return true;
+        }
         // Test for v1 - v1.5 IE
         else if (stripos($this->_agent, 'microsoft internet explorer') !== false) {
             $this->setBrowser(self::BROWSER_IE);
@@ -647,14 +677,14 @@ class Browser
                 return true;
             }
         } // Test for versions > IE 10
-		else if(stripos($this->_agent, 'trident') !== false) {
-			$this->setBrowser(self::BROWSER_IE);
-			$result = explode('rv:', $this->_agent);
+        else if(stripos($this->_agent, 'trident') !== false) {
+            $this->setBrowser(self::BROWSER_IE);
+            $result = explode('rv:', $this->_agent);
             if (isset($result[1])) {
                 $this->setVersion(preg_replace('/[^0-9.]+/', '', $result[1]));
                 $this->_agent = str_replace(array("Mozilla", "Gecko"), "MSIE", $this->_agent);
             }
-		} // Test for Pocket IE
+        } // Test for Pocket IE
         else if (stripos($this->_agent, 'mspie') !== false || stripos($this->_agent, 'pocket') !== false) {
             $aresult = explode(' ', stristr($this->_agent, 'mspie'));
             if (isset($aresult[1])) {
@@ -754,6 +784,41 @@ class Browser
                         $this->setMobile(true);
                     } else {
                         $this->setTablet(true);
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Determine if the browser is Wechat or not (last updated 1.7)
+     * @return boolean True if the browser is Wechat otherwise false
+     */
+    protected function checkBrowserWechat()
+    {
+        if (stripos($this->_agent, 'MicroMessenger') !== false) {
+            $this->setWechat(true);
+            $aresult = explode('/', stristr($this->_agent, 'MicroMessenger'));
+            if (isset($aresult[1])) {
+
+                // the is wechat version,not browser
+                $this->setVersion($aversion[1]);
+
+                // set the browser to wechat is not good
+                $this->setBrowser(self::BROWSER_WECHAT);
+
+                //Wechat on Android or iPhone
+                if (stripos($this->_agent, 'Android') !== false) {
+                    if (stripos($this->_agent, 'Mobile') !== false) {
+                        $this->setMobile(true);
+                    } else {
+                        $this->setTablet(true);
+                    }
+                } elseif (stripos($this->_agent, 'iPhone') !== false) {
+                    if (stripos($this->_agent, 'Mobile') !== false) {
+                        $this->setMobile(true);
                     }
                 }
                 return true;
